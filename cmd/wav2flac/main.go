@@ -134,7 +134,7 @@ func wav2flac(wavPath string, force bool, compress bool) error {
 			subframe.NSamples = n / nchannels
 			subframe.Samples = subframe.Samples[:subframe.NSamples]
 		}
-		for i, sample := range buf.Data {
+		for i, sample := range buf.Data[:n] {
 			subframe := subframes[i%nchannels]
 			subframe.Samples[i/nchannels] = int32(sample)
 		}
