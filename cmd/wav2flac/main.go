@@ -20,18 +20,20 @@ func main() {
 	// Parse command line arguments.
 	var (
 		// force overwrite FLAC file if already present.
-		force bool
+		force     bool
+		blockSize int
 	)
 	flag.BoolVar(&force, "f", false, "force overwrite")
+	flag.IntVar(&blockSize, "b", 16, "blockSize")
 	flag.Parse()
 	for _, wavPath := range flag.Args() {
-		if err := wav2flac(wavPath, force); err != nil {
+		if err := wav2flac(wavPath, force, blockSize); err != nil {
 			log.Fatalf("%+v", err)
 		}
 	}
 }
 
-func wav2flac(wavPath string, force bool) error {
+func wav2flac(wavPath string, force bool, blockSize int) error {
 	// Create WAV decoder.
 	r, err := os.Open(wavPath)
 	if err != nil {
@@ -87,9 +89,7 @@ func wav2flac(wavPath string, force bool) error {
 	if err := dec.FwdToPCM(); err != nil {
 		return errors.WithStack(err)
 	}
-	// Number of samples per channel and block.
-	const nsamplesPerChannel = 16
-	nsamplesPerBlock := nchannels * nsamplesPerChannel
+	nsamplesPerBlock := nchannels * blockSize
 	buf := &audio.IntBuffer{
 		Format: &audio.Format{
 			NumChannels: nchannels,
@@ -102,7 +102,7 @@ func wav2flac(wavPath string, force bool) error {
 	subframes := make([]*frame.Subframe, nchannels)
 	for i := range subframes {
 		subframe := &frame.Subframe{
-			Samples: make([]int32, nsamplesPerChannel),
+			Samples: make([]int32, blockSize),
 		}
 		subframes[i] = subframe
 	}
@@ -116,6 +116,7 @@ func wav2flac(wavPath string, force bool) error {
 		if n == 0 {
 			break
 		}
+		nSamples := n / nchannels
 		for _, subframe := range subframes {
 			subHdr := frame.SubHeader{
 				// Specifies the prediction method used to encode the audio sample of the
@@ -127,10 +128,10 @@ func wav2flac(wavPath string, force bool) error {
 				Wasted: 0,
 			}
 			subframe.SubHeader = subHdr
-			subframe.NSamples = n / nchannels
-			subframe.Samples = subframe.Samples[:subframe.NSamples]
+			subframe.NSamples = nSamples
+			subframe.Samples = subframe.Samples[:nSamples]
 		}
-		for i, sample := range buf.Data {
+		for i, sample := range buf.Data[:n] {
 			subframe := subframes[i%nchannels]
 			subframe.Samples[i/nchannels] = int32(sample)
 		}
@@ -160,7 +161,7 @@ func wav2flac(wavPath string, force bool) error {
 			HasFixedBlockSize: false,
 			// Block size in inter-channel samples, i.e. the number of audio samples
 			// in each subframe.
-			BlockSize: uint16(nsamplesPerChannel),
+			BlockSize: uint16(nSamples),
 			// Sample rate in Hz; a 0 value implies unknown, get sample rate from
 			// StreamInfo.
 			SampleRate: uint32(sampleRate),
