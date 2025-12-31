@@ -21,17 +21,19 @@ func main() {
 	var (
 		// force overwrite FLAC file if already present.
 		force bool
+		compress bool
 	)
 	flag.BoolVar(&force, "f", false, "force overwrite")
+	flag.BoolVar(&compress, "c", false, "compress")
 	flag.Parse()
 	for _, wavPath := range flag.Args() {
-		if err := wav2flac(wavPath, force); err != nil {
+		if err := wav2flac(wavPath, force, compress); err != nil {
 			log.Fatalf("%+v", err)
 		}
 	}
 }
 
-func wav2flac(wavPath string, force bool) error {
+func wav2flac(wavPath string, force bool, compress bool) error {
 	// Create WAV decoder.
 	r, err := os.Open(wavPath)
 	if err != nil {
@@ -82,6 +84,8 @@ func wav2flac(wavPath string, force bool) error {
 		return errors.WithStack(err)
 	}
 	defer enc.Close()
+
+	enc.EnablePredictionAnalysis(compress)
 
 	// Encode samples.
 	if err := dec.FwdToPCM(); err != nil {
