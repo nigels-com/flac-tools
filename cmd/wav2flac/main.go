@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"runtime/pprof"
+
 	"github.com/go-audio/audio"
 	"github.com/go-audio/wav"
 	"github.com/mewkiz/flac"
@@ -23,12 +25,26 @@ func main() {
 		force bool
 		compress bool
 		blockSize int
+		profile string
 	)
 	flag.BoolVar(&force, "f", false, "force overwrite")
 	flag.BoolVar(&compress, "c", false, "compress")
 	flag.IntVar(&blockSize, "b", 16, "blockSize")
+	flag.StringVar(&profile, "p", "", "write cpu profile to file")
 	flag.Parse()
+
+	if len(profile) > 0 {
+		fmt.Println("profile:", profile)
+		f, err := os.Create(profile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
+
 	for _, wavPath := range flag.Args() {
+		fmt.Println("WAV:", wavPath)
 		if err := wav2flac(wavPath, force, compress, blockSize); err != nil {
 			log.Fatalf("%+v", err)
 		}
