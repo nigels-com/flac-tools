@@ -62,8 +62,15 @@ func wav2flac(wavPath string, force bool, compress bool, blockSize int) error {
 	if !dec.IsValidFile() {
 		return errors.Errorf("invalid WAV file %q", wavPath)
 	}
+	// WAVE_FORMAT_IEEE_FLOAT
+	// https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.14393.0/shared/mmreg.h#L2110
 	if dec.WavAudioFormat == 3 {
 		return errors.Errorf("unsupported float format WAV file %q", wavPath)
+	}
+	// WAVE_FORMAT_EXTENSIBLE
+	// https://github.com/tpn/winsdk-10/blob/9b69fd26ac0c7d0b83d378dba01080e93349c2ed/Include/10.0.14393.0/shared/mmreg.h#L2375
+	if dec.WavAudioFormat == 0xFFFE {
+		return errors.Errorf("unsupported extensible format WAV file %q", wavPath)
 	}
 	sampleRate, nchannels, bps := int(dec.SampleRate), int(dec.NumChans), int(dec.BitDepth)
 
