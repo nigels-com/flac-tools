@@ -62,6 +62,9 @@ func wav2flac(wavPath string, force bool, compress bool, blockSize int) error {
 	if !dec.IsValidFile() {
 		return errors.Errorf("invalid WAV file %q", wavPath)
 	}
+	if dec.WavAudioFormat == 3 {
+		return errors.Errorf("unsupported float format WAV file %q", wavPath)
+	}
 	sampleRate, nchannels, bps := int(dec.SampleRate), int(dec.NumChans), int(dec.BitDepth)
 
 	// Create FLAC encoder.
