@@ -52,6 +52,9 @@ func wav2flac(wavPath string, force bool) error {
 	if dec.WavAudioFormat == 0xFFFE {
 		return errors.Errorf("unsupported extensible format WAV file %q", wavPath)
 	}
+	if dec.BitDepth == 12 {
+		return errors.Errorf("unsupported 12 bit depth WAV file %q", wavPath)
+	}
 	if dec.BitDepth == 32 {
 		return errors.Errorf("unsupported 32 bit depth WAV file %q", wavPath)
 	}
