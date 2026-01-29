@@ -2,10 +2,10 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
+	"crypto/md5"
 	"runtime/pprof"
 
 	"github.com/go-audio/audio"
@@ -24,17 +24,19 @@ func main() {
 		// force overwrite FLAC file if already present.
 		force bool
 		compress bool
+		md5sum bool
 		blockSize int
 		profile string
 	)
 	flag.BoolVar(&force, "f", false, "force overwrite")
 	flag.BoolVar(&compress, "c", false, "compress")
+	flag.BoolVar(&md5sum, "m", false, "md5sum")
 	flag.IntVar(&blockSize, "b", 16, "blockSize")
 	flag.StringVar(&profile, "p", "", "write cpu profile to file")
 	flag.Parse()
 
 	if len(profile) > 0 {
-		fmt.Println("profile:", profile)
+//		fmt.Println("profile:", profile)
 		f, err := os.Create(profile)
 		if err != nil {
 			log.Fatal(err)
@@ -44,14 +46,14 @@ func main() {
 	}
 
 	for _, wavPath := range flag.Args() {
-		fmt.Println("WAV:", wavPath)
-		if err := wav2flac(wavPath, force, compress, blockSize); err != nil {
+//		fmt.Println("WAV:", wavPath)
+		if err := wav2flac(wavPath, force, compress, md5sum, blockSize); err != nil {
 			log.Fatalf("%+v", err)
 		}
 	}
 }
 
-func wav2flac(wavPath string, force bool, compress bool, blockSize int) error {
+func wav2flac(wavPath string, force bool, compress bool, md5sum bool, blockSize int) error {
 	// Create WAV decoder.
 	r, err := os.Open(wavPath)
 	if err != nil {
@@ -120,6 +122,10 @@ func wav2flac(wavPath string, force bool, compress bool, blockSize int) error {
 	}
 	defer enc.Close()
 
+	if md5sum {
+		enc.MD5sum = md5.New()
+	}
+
 	enc.EnablePredictionAnalysis(compress)
 
 	// Encode samples.
@@ -144,7 +150,7 @@ func wav2flac(wavPath string, force bool, compress bool, blockSize int) error {
 		subframes[i] = subframe
 	}
 	for frameNum := 0; !dec.EOF(); frameNum++ {
-		fmt.Println("frame number:", frameNum)
+//		fmt.Println("frame number:", frameNum)
 		// Decode WAV samples.
 		n, err := dec.PCMBuffer(buf)
 		if err != nil {
@@ -183,7 +189,7 @@ func wav2flac(wavPath string, force bool, compress bool, blockSize int) error {
 				}
 			}
 			if constant {
-				fmt.Println("constant method")
+//				fmt.Println("constant method")
 				subframe.SubHeader.Pred = frame.PredConstant
 			}
 		}
