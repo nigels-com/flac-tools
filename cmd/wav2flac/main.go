@@ -116,6 +116,7 @@ func wav2flac(wavPath string, force bool) error {
 		if n == 0 {
 			break
 		}
+		nSamples := n / nchannels
 		for _, subframe := range subframes {
 			subHdr := frame.SubHeader{
 				// Specifies the prediction method used to encode the audio sample of the
@@ -127,8 +128,8 @@ func wav2flac(wavPath string, force bool) error {
 				Wasted: 0,
 			}
 			subframe.SubHeader = subHdr
-			subframe.NSamples = n / nchannels
-			subframe.Samples = subframe.Samples[:subframe.NSamples]
+			subframe.NSamples = nSamples
+			subframe.Samples = subframe.Samples[:nSamples]
 		}
 		for i, sample := range buf.Data[:n] {
 			subframe := subframes[i%nchannels]
@@ -160,7 +161,7 @@ func wav2flac(wavPath string, force bool) error {
 			HasFixedBlockSize: false,
 			// Block size in inter-channel samples, i.e. the number of audio samples
 			// in each subframe.
-			BlockSize: uint16(nsamplesPerChannel),
+			BlockSize: uint16(nSamples),
 			// Sample rate in Hz; a 0 value implies unknown, get sample rate from
 			// StreamInfo.
 			SampleRate: uint32(sampleRate),
